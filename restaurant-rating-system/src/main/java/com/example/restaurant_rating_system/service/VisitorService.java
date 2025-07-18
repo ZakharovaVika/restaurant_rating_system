@@ -1,10 +1,13 @@
 package com.example.restaurant_rating_system.service;
+import com.example.restaurant_rating_system.dto.VisitorRequestDTO;
+import com.example.restaurant_rating_system.dto.VisitorResponseDTO;
 import com.example.restaurant_rating_system.model.Visitor;
 import com.example.restaurant_rating_system.repository.VisitorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service // Помечаем класс как Spring Service
 public class VisitorService {
@@ -14,27 +17,32 @@ public class VisitorService {
         this.visitorRepository = visitorRepository;
     }
 
-    public Visitor saveVisitor(Visitor visitor) {
-        // Здесь могла бы быть бизнес-логика: валидация, проверка уникальности имени и т.д.
-        // Для простоты, просто сохраняем.
-        // Проверка на null обязательных полей:
-        if (visitor.getAge() <= 0 || visitor.getGender() == null || visitor.getGender().isEmpty()) {
-            throw new IllegalArgumentException("Age and Gender are mandatory for a visitor.");
-        }
-        return visitorRepository.save(visitor);
+    public VisitorResponseDTO saveVisitor(VisitorRequestDTO visitorRequestDTO) {
+        // Преобразуем DTO в сущность
+        Visitor visitor = new Visitor(null, visitorRequestDTO.getName(), visitorRequestDTO.getAge(), visitorRequestDTO.getGender());
+        // Сохраняем сущность
+        Visitor savedVisitor = visitorRepository.save(visitor);
+        // Преобразуем сущность обратно в DTO
+        return convertToResponseDTO(savedVisitor);
     }
 
     public void removeVisitor(Long id) {
-        // Здесь могла бы быть логика: например, сначала удалить все отзывы этого посетителя.
-        // В данном случае, мы просто удаляем посетителя.
         visitorRepository.remove(id);
     }
 
-    public List<Visitor> findAllVisitors() {
-        return visitorRepository.findAll();
+    public List<VisitorResponseDTO> findAllVisitors() {
+        return visitorRepository.findAll().stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Visitor> findVisitorById(Long id) {
-        return visitorRepository.findById(id);
+    public Optional<VisitorResponseDTO> findVisitorById(Long id) {
+        return visitorRepository.findById(id)
+                .map(this::convertToResponseDTO);
+    }
+
+    // Метод для преобразования сущности в DTO
+    private VisitorResponseDTO convertToResponseDTO(Visitor visitor) {
+        return new VisitorResponseDTO(visitor.getId(), visitor.getName(), visitor.getAge(), visitor.getGender());
     }
 }
