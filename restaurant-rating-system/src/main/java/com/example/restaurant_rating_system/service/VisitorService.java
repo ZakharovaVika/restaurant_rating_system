@@ -18,16 +18,13 @@ public class VisitorService {
     }
 
     public VisitorResponseDTO saveVisitor(VisitorRequestDTO visitorRequestDTO) {
-        // Преобразуем DTO в сущность
         Visitor visitor = new Visitor(null, visitorRequestDTO.getName(), visitorRequestDTO.getAge(), visitorRequestDTO.getGender());
-        // Сохраняем сущность
         Visitor savedVisitor = visitorRepository.save(visitor);
-        // Преобразуем сущность обратно в DTO
         return convertToResponseDTO(savedVisitor);
     }
 
     public void removeVisitor(Long id) {
-        visitorRepository.remove(id);
+        visitorRepository.deleteById(id);
     }
 
     public List<VisitorResponseDTO> findAllVisitors() {
@@ -41,7 +38,6 @@ public class VisitorService {
                 .map(this::convertToResponseDTO);
     }
 
-    // Метод для преобразования сущности в DTO
     private VisitorResponseDTO convertToResponseDTO(Visitor visitor) {
         return new VisitorResponseDTO(visitor.getId(), visitor.getName(), visitor.getAge(), visitor.getGender());
     }
