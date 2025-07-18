@@ -1,12 +1,11 @@
 package com.example.restaurant_rating_system.service;
-
+import com.example.restaurant_rating_system.dto.ReviewRequestDTO;
+import com.example.restaurant_rating_system.dto.ReviewResponseDTO;
 import com.example.restaurant_rating_system.model.Review;
 import com.example.restaurant_rating_system.repository.ReviewRepository;
 import com.example.restaurant_rating_system.repository.RestaurantRepository;
 import com.example.restaurant_rating_system.repository.VisitorRepository;
-import com.example.restaurant_rating_system.model.Restaurant;
-import com.example.restaurant_rating_system.model.Visitor;
-
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -30,63 +29,30 @@ public class ReviewService {
         this.restaurantService = restaurantService;
     }
 
-    public Review saveReview(Review review) {
-        // Валидация:
-        // 1. Проверить, что посетитель и ресторан существуют
-        Optional<Visitor> visitor = visitorRepository.findById(review.getVisitorId());
-        Optional<Restaurant> restaurant = restaurantRepository.findById(review.getRestaurantId());
-
-        if (!visitor.isPresent()) {
-            throw new IllegalArgumentException("Visitor with ID " + review.getVisitorId() + " not found.");
-        }
-        if (!restaurant.isPresent()) {
-            throw new IllegalArgumentException("Restaurant with ID " + review.getRestaurantId() + " not found.");
-        }
-
-        // 2. Проверить, что оценка в допустимом диапазоне (например, 1-5)
-        if (review.getRating() < 1 || review.getRating() > 5) {
-            throw new IllegalArgumentException("Rating must be between 1 and 5.");
-        }
-
-        // 3. Проверить, что такой отзыв уже есть (опционально, для уникальности)
-        Optional<Review> existingReview = reviewRepository.findById(review.getVisitorId(), review.getRestaurantId());
-        if (existingReview.isPresent()) {
-
-            reviewRepository.remove(review.getVisitorId(), review.getRestaurantId());
-        }
-
-        Review savedReview = reviewRepository.save(review); // Сохраняем новый отзыв
-
-        // 4. Пересчитать среднюю оценку ресторана
-        restaurantService.recalculateRestaurantRating(review.getRestaurantId());
-
-        return savedReview;
+    public ReviewResponseDTO saveReview(ReviewRequestDTO reviewRequestDTO) {
+        Review review = new Review(reviewRequestDTO.getVisitorId(), reviewRequestDTO.getRestaurantId(), reviewRequestDTO.getRating(), reviewRequestDTO.getReviewText());
+        Review savedReview = reviewRepository.save(review);
+        restaurantService.recalculateRestaurantRating(reviewRequestDTO.getRestaurantId());
+        return convertToResponseDTO(savedReview);
     }
 
     public void removeReview(Long visitorId, Long restaurantId) {
-        // Удаляем отзыв
         reviewRepository.remove(visitorId, restaurantId);
-
-        // Пересчитываем оценку ресторана после удаления отзыва
-        // (если ресторан все еще существует)
-        restaurantRepository.findById(restaurantId).ifPresent(restaurant ->
-                restaurantService.recalculateRestaurantRating(restaurantId)
-        );
+        restaurantService.recalculateRestaurantRating(restaurantId);
     }
 
-    public Optional<Review> findReviewById(Long visitorId, Long restaurantId) {
-        return reviewRepository.findById(visitorId, restaurantId);
+    public Optional<ReviewResponseDTO> findReviewById(Long visitorId, Long restaurantId) {
+        return reviewRepository.findById(visitorId, restaurantId)
+                .map(this::convertToResponseDTO);
     }
 
-    public List<Review> findAllReviews() {
-        return reviewRepository.findAll();
+    public List<ReviewResponseDTO> findAllReviews() {
+        return reviewRepository.findAll().stream()
+                .map(this::convertToResponseDTO)
+                .collect(Collectors.toList());
     }
 
-    public List<Review> findReviewsByRestaurantId(Long restaurantId) {
-        return reviewRepository.findByRestaurantId(restaurantId);
-    }
-
-    public List<Review> findReviewsByVisitorId(Long visitorId) {
-        return reviewRepository.findByVisitorId(visitorId);
+    private ReviewResponseDTO convertToResponseDTO(Review review) {
+        return new ReviewResponseDTO(review.getVisitorId(), review.getRestaurantId(), review.getRating(), review.getReviewText());
     }
 }
