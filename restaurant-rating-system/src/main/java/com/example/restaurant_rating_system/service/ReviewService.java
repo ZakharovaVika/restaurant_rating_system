@@ -30,15 +30,18 @@ public class ReviewService {
     }
 
     public ReviewResponseDTO saveReview(ReviewRequestDTO reviewRequestDTO) {
-        Review review = new Review(reviewRequestDTO.getVisitorId(), reviewRequestDTO.getRestaurantId(), reviewRequestDTO.getRating(), reviewRequestDTO.getReviewText());
+        Review review = new Review(null, reviewRequestDTO.getVisitorId(), reviewRequestDTO.getRestaurantId(), reviewRequestDTO.getRating(), reviewRequestDTO.getReviewText());
         Review savedReview = reviewRepository.save(review);
-        restaurantService.recalculateRestaurantRating(reviewRequestDTO.getRestaurantId());
+        restaurantService.recalculateRestaurantRating(reviewRequestDTO.getRestaurantId()); // Теперь работает!
         return convertToResponseDTO(savedReview);
     }
 
     public void removeReview(Long visitorId, Long restaurantId) {
-        reviewRepository.remove(visitorId, restaurantId);
-        restaurantService.recalculateRestaurantRating(restaurantId);
+        Optional<Review> reviewOptional = reviewRepository.findById(visitorId, restaurantId);
+        reviewOptional.ifPresent(review -> {
+            reviewRepository.delete(review);
+            restaurantService.recalculateRestaurantRating(restaurantId);
+        });
     }
 
     public Optional<ReviewResponseDTO> findReviewById(Long visitorId, Long restaurantId) {

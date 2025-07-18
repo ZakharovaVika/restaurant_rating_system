@@ -31,7 +31,7 @@ public class RestaurantService {
     }
 
     public void removeRestaurant(Long id) {
-        restaurantRepository.remove(id);
+        restaurantRepository.deleteById(id);
     }
 
     public List<RestaurantResponseDTO> findAllRestaurants() {
@@ -48,6 +48,7 @@ public class RestaurantService {
     private RestaurantResponseDTO convertToResponseDTO(Restaurant restaurant) {
         return new RestaurantResponseDTO(restaurant.getId(), restaurant.getName(), restaurant.getDescription(), restaurant.getCuisineType(), restaurant.getAverageCheckPerPerson(), restaurant.getUserRating());
     }
+
     public void recalculateRestaurantRating(Long restaurantId) {
         // Получаем все отзывы для данного ресторана
         List<Review> reviews = reviewRepository.findByRestaurantId(restaurantId);
